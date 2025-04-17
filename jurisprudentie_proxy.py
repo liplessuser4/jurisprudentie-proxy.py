@@ -2,11 +2,9 @@ from flask import Flask, request, jsonify
 import requests
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from bert_loader import load_legalbert_embedding_pipeline, load_ner_pipeline
+from bert_loader import load_legalbert_embedding_pipeline  # alleen embeddings
 
 app = Flask(__name__)
-embed = load_legalbert_embedding_pipeline()
-ner = load_ner_pipeline()
 
 # 🔎 Endpoint 1 – Zoek jurisprudentie op basis van zoekterm
 @app.route("/jurisprudentie/zoek", methods=["POST"])
@@ -42,7 +40,7 @@ def zoek_jurisprudentie():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 🔎 Endpoint 2 – Analyseer ECLI met Legal BERT + NER
+# 🔎 Endpoint 2 – Analyseer ECLI met alleen Legal BERT embeddings
 @app.route("/jurisprudentie/analyse", methods=["POST"])
 def analyseer_ecli():
     data = request.json
@@ -64,15 +62,15 @@ def analyseer_ecli():
         if not tekst:
             return jsonify({"error": "Geen uitspraaktekst gevonden"}), 404
 
+        # ⚠️ Laad model pas als deze route wordt aangeroepen
+        embed = load_legalbert_embedding_pipeline()
         tekst_kort = tekst[:2000]
         embedding = embed(tekst_kort)
-        entiteiten = ner(tekst_kort)
 
         return jsonify({
             "ecli": ecli,
             "samenvatting": tekst[:1000] + "...",
-            "embedding": embedding,
-            "entiteiten": entiteiten
+            "embedding": embedding
         })
 
     except Exception as e:
